@@ -1,4 +1,4 @@
-OBJECTS = mem.o thread.o log.o fd.o dispatcher.o
+OBJECTS = mem.o thread.o log.o fd.o dispatcher.o list.o
 TARGET = libm10k.so
 INCLUDES = -Iinclude
 CFLAGS += -fPIC -O3 $(INCLUDES)
