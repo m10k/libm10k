@@ -29,6 +29,8 @@ int m10k_mem_free(void**);
 int m10k_mem_ref(void**);
 int m10k_mem_unref(void**);
 
+int m10k_mem_strdup(char**, const char*);
+
 #define m10k_salloc(p) m10k_mem_alloc((void**)&(p), sizeof(*(p)))
 #define m10k_ref(p)    m10k_mem_ref((void**)&(p))
 #define m10k_unref(p)  m10k_mem_unref((void**)&(p))

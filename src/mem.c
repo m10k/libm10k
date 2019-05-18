@@ -22,6 +22,7 @@
 #include <m10k/thread.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <errno.h>
 
 #define _MAGIC 0xf00f00f00f00f00fLL
@@ -153,6 +154,25 @@ int m10k_mem_unref(void **ptr)
 				/* there are no more references - safe to free, ignoring locks */
 
 			}
+		}
+	}
+
+	return(ret_val);
+}
+
+int m10k_mem_strdup(char **dst, const char *src)
+{
+	int ret_val;
+	size_t len;
+
+	ret_val = -EINVAL;
+
+	if(dst && src) {
+		len = strlen(src) + 1;
+		ret_val = m10k_mem_alloc((void**)dst, len);
+
+		if(!ret_val) {
+			ret_val = snprintf(*dst, len, "%s", src);
 		}
 	}
 
