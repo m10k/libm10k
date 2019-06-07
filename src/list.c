@@ -314,6 +314,9 @@ int m10k_list_flush(m10k_list *list)
 			list->head = next;
 		}
 
+		list->tail = NULL;
+		list->nitems = 0;
+
 		_UNLOCK(list);
 	}
 
