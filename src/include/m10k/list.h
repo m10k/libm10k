@@ -31,5 +31,6 @@ int   m10k_list_append(m10k_list*, void*);
 int   m10k_list_remove(m10k_list*, void*);
 void* m10k_list_find(m10k_list*, int(*)(void*, void*), void*);
 int   m10k_list_foreach(m10k_list*, int(*)(void*, void*), void*);
+int   m10k_list_flush(m10k_list*);
 
 #endif /* _M10K_LIST_H */

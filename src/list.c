@@ -286,3 +286,36 @@ int m10k_list_foreach(m10k_list *list, int (*func)(void*, void*), void *arg)
 
 	return(ret_val);
 }
+
+int m10k_list_flush(m10k_list *list)
+{
+	int ret_val;
+
+	ret_val = -EINVAL;
+
+	if(list) {
+		_LOCK(list);
+
+		for(ret_val = 0; list->head; ret_val++) {
+			struct _item *next;
+
+			/* make sure the item is not in use */
+			_LOCK(list->head);
+			next = list->head->next;
+			_UNLOCK(list->head);
+
+			/*
+			 * We can be sure the head won't be locked by someone else
+			 * since we still hold a lock on the list, and these functions
+			 * never iterate over the list backwards
+			 */
+			m10k_mutex_destroy(&(list->head->lock));
+			m10k_mem_unref((void**)&(list->head));
+			list->head = next;
+		}
+
+		_UNLOCK(list);
+	}
+
+	return(ret_val);
+}
