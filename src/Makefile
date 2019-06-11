@@ -1,10 +1,10 @@
-OBJECTS = mem.o thread.o log.o fd.o dispatcher.o list.o
+OBJECTS = mem.o thread.o log.o fd.o dispatcher.o list.o crypto.o
 TARGET = libm10k.so
 INCLUDES = -Iinclude
 CFLAGS += -fPIC -O3 $(INCLUDES)
 LDFLAGS = -fPIC -shared -Wl,-soname,$(TARGET),-z,noexecstack,-z,noexecheap,-z,pic,-z,now \
           -L$(PREFIX)lib
-LIBS = -lpthread
+LIBS = -lpthread -lcrypto
 
 PHONY = clean
 
