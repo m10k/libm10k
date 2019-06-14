@@ -21,7 +21,6 @@
 #define _LIBM10K_SOURCE
 #include <m10k/types.h>
 #include <m10k/mem.h>
-#include <m10k/uipc.h>
 #include <m10k/log.h>
 #include <m10k/fd.h>
 #include <m10k/thread.h>
