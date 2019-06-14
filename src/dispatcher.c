@@ -27,6 +27,7 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <errno.h>
+#include "fd.h"
 
 #define _EVENT_MAX 16
 
