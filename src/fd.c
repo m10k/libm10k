@@ -25,36 +25,43 @@
 #include <m10k/thread.h>
 #include <unistd.h>
 #include <errno.h>
+#include "fd.h"
 
-struct _callback {
-	m10k_fd_func *handler;
-	void *arg;
-};
+extern struct fd_dom _dom_unix;
 
-struct _m10k_fd {
-	int fd;
-	void *priv;
-	m10k_mutex lock;
-
-	struct _callback events[M10K_FD_EVENT_NUM];
+struct fd_dom *_doms[] = {
+	&_dom_unix
 };
 
 #define _LOCK(f)   m10k_mutex_lock(&((f)->lock))
 #define _UNLOCK(f) m10k_mutex_unlock(&((f)->lock))
 
-int m10k_fd_new(m10k_fd **dst)
+int m10k_fd_new(m10k_fd **dst, m10k_fd_dom dom, ...)
 {
 	int ret_val;
 	m10k_fd *fd;
 
 	ret_val = -EINVAL;
 
-	if(dst) {
+	if(dst && m10k_fd_dom_valid(dom)) {
 		ret_val = m10k_salloc(fd);
 
 		if(!ret_val) {
+			va_list args;
+
 			assert(m10k_mutex_init(&(fd->lock)) == 0);
 			fd->fd = -1;
+
+			va_start(args, dom);
+			ret_val = _doms[dom]->ops->open(fd, args);
+			va_end(args);
+
+			if(ret_val < 0) {
+				m10k_unref(fd);
+			} else {
+				fd->dom = dom;
+				fd->ops = _doms[dom]->ops;
+			}
 		}
 
 		*dst = fd;
@@ -70,10 +77,8 @@ int m10k_fd_free(m10k_fd **fd)
 	ret_val = -EINVAL;
 
 	if(fd && *fd) {
-		m10k_fd_close(*fd);
+		ret_val = m10k_fd_close(*fd);
 		m10k_mem_unref((void**)fd);
-
-		ret_val = 0;
 	}
 
 	return(ret_val);
@@ -91,10 +96,10 @@ int m10k_fd_close(m10k_fd *fd)
 		_LOCK(fd);
 
 		if(fd->fd >= 0) {
-			errno = 0;
+			ret_val = fd->ops->close(fd);
+
 			close(fd->fd);
 			fd->fd = -1;
-			ret_val = -errno;
 		}
 
 		_UNLOCK(fd);
@@ -110,20 +115,8 @@ ssize_t m10k_fd_read(m10k_fd *fd, void *dst, const size_t dsize)
 	ret_val = (ssize_t)-EINVAL;
 
 	if(fd && dst) {
-		_LOCK(fd);
-
-		if(fd->fd < 0) {
-			ret_val = (ssize_t)-EBADF;
-		} else {
-			ret_val = read(fd->fd, dst, dsize);
-
-			if(ret_val < 0) {
-				ret_val = (ssize_t)-errno;
-				m10k_P("read", ret_val);
-			}
-		}
-
-		_UNLOCK(fd);
+		ret_val = fd->ops->read ?
+			fd->ops->read(fd, dst, dsize) : -EOPNOTSUPP;
 	}
 
 	return(ret_val);
@@ -136,20 +129,24 @@ ssize_t m10k_fd_write(m10k_fd *fd, const void *src, const size_t slen)
 	ret_val = (ssize_t)-EINVAL;
 
 	if(fd && src) {
-		_LOCK(fd);
+		ret_val = fd->ops->write ?
+			fd->ops->write(fd, src, slen) : -EOPNOTSUPP;
+	}
 
-		if(fd->fd < 0) {
-			ret_val = (ssize_t)-EBADF;
-		} else {
-			ret_val = write(fd->fd, src, slen);
+	return(ret_val);
+}
 
-			if(ret_val < 0) {
-				ret_val = (ssize_t)-errno;
-				m10k_P("write", ret_val);
-			}
-		}
+int m10k_fd_accept(m10k_fd *src, m10k_fd **dst)
+{
+	int ret_val;
+	m10k_fd *fd;
 
-		_UNLOCK(fd);
+	ret_val = -EINVAL;
+	fd = NULL;
+
+	if(src && dst) {
+		ret_val = src->ops->accept ?
+			src->ops->accept(src, dst) : -EOPNOTSUPP;
 	}
 
 	return(ret_val);
@@ -167,57 +164,6 @@ int m10k_fd_set_callback(m10k_fd *fd, m10k_fd_event ev, m10k_fd_func *func, void
 		fd->events[ev].handler = func;
 		fd->events[ev].arg = data;
 
-		_UNLOCK(fd);
-
-		ret_val = 0;
-	}
-
-	return(ret_val);
-}
-
-int m10k_fd_set_priv(m10k_fd *fd, void *priv)
-{
-	int ret_val;
-
-	ret_val = -EINVAL;
-
-	if(fd) {
-		_LOCK(fd);
-		fd->priv = priv;
-		_UNLOCK(fd);
-
-		ret_val = 0;
-	}
-
-	return(ret_val);
-}
-
-int m10k_fd_get_priv(m10k_fd *fd, void **dst)
-{
-	int ret_val;
-
-	ret_val = -EINVAL;
-
-	if(fd && dst) {
-		_LOCK(fd);
-		*dst = fd->priv;
-		_UNLOCK(fd);
-
-		ret_val = 0;
-	}
-
-	return(ret_val);
-}
-
-int m10k_fd_set_fd(m10k_fd *fd, int llfd)
-{
-	int ret_val;
-
-	ret_val = -EINVAL;
-
-	if(fd) {
-		_LOCK(fd);
-		fd->fd = llfd;
 		_UNLOCK(fd);
 
 		ret_val = 0;
@@ -248,7 +194,7 @@ int m10k_fd_notify(m10k_fd *fd, m10k_fd_event ev, void *arg)
 	ret_val = -EINVAL;
 
 	if(fd && ev >= 0 && ev < M10K_FD_EVENT_NUM) {
-		struct _callback cb;
+		struct _fd_event cb;
 
 		ret_val = -ENOTSUP;
 

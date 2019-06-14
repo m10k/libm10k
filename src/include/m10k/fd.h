@@ -33,20 +33,31 @@ typedef enum {
 	M10K_FD_EVENT_NUM
 } m10k_fd_event;
 
+typedef enum {
+	M10K_FD_DOM_UNIX = 0,
+	M10K_FD_DOM_NUM
+} m10k_fd_dom;
+
+typedef enum {
+	M10K_FD_TYPE_SERVER = 0,
+	M10K_FD_TYPE_CLIENT
+} m10k_fd_type;
+
+#define m10k_fd_dom_valid(dom)   ((dom) >= 0 && (dom) < M10K_FD_DOM_NUM)
+#define m10k_fd_type_valid(type) ((type) == M10K_FD_TYPE_SERVER		\
+								  || (type) == M10K_FD_TYPE_CLIENT)
+
 typedef void (m10k_fd_func)(m10k_fd*, m10k_fd_event, void*, void*);
 
-int     m10k_fd_new(m10k_fd**);
+int     m10k_fd_new(m10k_fd**, m10k_fd_dom, ...);
 int     m10k_fd_free(m10k_fd**);
 
 int     m10k_fd_close(m10k_fd*);
 ssize_t m10k_fd_read(m10k_fd*, void*, const size_t);
 ssize_t m10k_fd_write(m10k_fd*, const void*, const size_t);
+int     m10k_fd_accept(m10k_fd*, m10k_fd**);
 
 int     m10k_fd_set_callback(m10k_fd*, m10k_fd_event, m10k_fd_func*, void*);
-int     m10k_fd_set_priv(m10k_fd*, void*);
-int     m10k_fd_get_priv(m10k_fd*, void**);
-int     m10k_fd_set_fd(m10k_fd*, int);
-int     m10k_fd_get_fd(m10k_fd*);
 int     m10k_fd_notify(m10k_fd*, m10k_fd_event, void*);
 
 #endif /* _M10K_FD_H */
