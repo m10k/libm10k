@@ -277,6 +277,28 @@ static int _unix_accept(m10k_fd *fd, m10k_fd **client)
 
 static int _unix_close(m10k_fd *fd)
 {
-	/* nothing to do - close() will be called at the m10k_fd layer */
-	return(0);
+	int ret_val;
+
+	ret_val = -EINVAL;
+
+	if(fd) {
+		struct unix_priv *priv;
+
+		priv = (struct unix_priv*)fd->priv;
+
+		/* clean up the socket, if it was a listening one */
+		if(priv->type == M10K_FD_TYPE_SERVER) {
+			errno = 0;
+			unlink(priv->addr.sun_path);
+			ret_val = -errno;
+
+			if(ret_val < 0) {
+				m10k_P("unlink", ret_val);
+			}
+		} else {
+			ret_val = 0;
+		}
+	}
+
+	return(ret_val);
 }
