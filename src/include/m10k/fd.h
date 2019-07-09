@@ -36,6 +36,7 @@ typedef enum {
 typedef enum {
 	M10K_FD_DOM_UNIX = 0,
 	M10K_FD_DOM_MCAST,
+	M10K_FD_DOM_TLS,
 	M10K_FD_DOM_NUM
 } m10k_fd_dom;
 
