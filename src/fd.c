@@ -29,10 +29,12 @@
 
 extern struct fd_dom _dom_unix;
 extern struct fd_dom _dom_mcast;
+extern struct fd_dom _dom_tls;
 
 struct fd_dom *_doms[] = {
 	&_dom_unix,
-	&_dom_mcast
+	&_dom_mcast,
+	&_dom_tls
 };
 
 #define _LOCK(f)   m10k_mutex_lock(&((f)->lock))
